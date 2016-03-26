@@ -1,0 +1,29 @@
+-----
+What?
+-----
+
+The Python script "pencrypter.py" helps you *encrypt* a password using SHA-512
+in a way that is compatible with most Linux systems and the results can be put
+into the "/etc/shadow" file directly.
+
+
+-------
+Example
+-------
+
+Let's say we want to create a new user "sdez" on a Ubuntu 14.04 LTS server, and
+the password for this new user is "Steven forgets his password!".
+
+We can use this script to *encrypt* the password the user wants to use:
+
+    $ ./pencrypter.py
+    Password: (enter the 28 characters long password here)
+    $6$cF.OZfPGrTfsqa2N$lWinnKejK/qjHA1/8OLxP7u19F8hUAD/AEYFCQJt9Z6bMQUiiFjUld1aoXTyNqvZCgRCWLSBSlQWuNAn581PF/
+
+We can use "useradd" to create a new user on the system:
+
+    $ useradd --create-home --shell /bin/bash --comment 'Steven Hernandez' sdez
+
+And we can use "usermod" command to set a password for that user:
+
+    $ usermod --password '$6$cF.OZfPGrTfsqa2N$lWinnKejK/qjHA1/8OLxP7u19F8hUAD/AEYFCQJt9Z6bMQUiiFjUld1aoXTyNqvZCgRCWLSBSlQWuNAn581PF/' sdez
