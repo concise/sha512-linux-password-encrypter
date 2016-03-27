@@ -16,6 +16,19 @@ import sys
 
 b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
+def sha512_crypt(password, salt, rounds=5000):
+    assert type(password) is bytes
+    assert type(salt) is bytes and len(salt) <= 16
+    assert all(map(lambda c: c in b64table, salt))
+    assert type(rounds) is int and 1000 <= rounds <= 999999999
+    checksum = sha512_crypt_core(password, salt, rounds)
+    return (
+        b'$6' +
+        ('$rounds={:d}'.format(rounds).encode() if rounds != 5000 else b'') +
+        b'$' + salt +
+        b'$' + checksum
+    )
+
 def sha512_crypt_core(password, salt, rounds):
 
     B = hashlib.sha512(password + salt + password).digest()
@@ -54,19 +67,6 @@ def sha512_crypt_core(password, salt, rounds):
         63
     )
     return myb64encode(bytes(C[i] for i in permutation_indices))
-
-def sha512_crypt(password, salt, rounds=5000):
-    assert type(password) is bytes
-    assert type(salt) is bytes and len(salt) <= 16
-    assert all(map(lambda c: c in b64table, salt))
-    assert type(rounds) is int and 1000 <= rounds <= 999999999
-    checksum = sha512_crypt_core(password, salt, rounds)
-    return (
-        b'$6' +
-        ('$rounds={:d}'.format(rounds).encode() if rounds != 5000 else b'') +
-        b'$' + salt +
-        b'$' + checksum
-    )
 
 def myb64encode_core(stream):
     result = ()
