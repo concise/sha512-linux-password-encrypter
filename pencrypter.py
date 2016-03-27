@@ -107,38 +107,42 @@ def main():
         obj.rounds = 5000
     if obj.password is None:
         obj.password = getpass.getpass().encode()
+    if not all(map(lambda c: 32 <= c <= 126, obj.password)):
+        print('Error: must use ASCII printable characters', file=sys.stderr)
+        sys.exit(1)
     print(sha512_crypt(obj.password, obj.salt, obj.rounds).decode())
 
 def cmdline_args_handler():
-    parser = argparse.ArgumentParser(description='UNIX style password encryption using SHA-512')
-    parser.add_argument('--salt', type=cmdline_args_salt, help='specify the 96-bit salt (default: randomly generated)')
-    parser.add_argument('--rounds', type=cmdline_args_rounds, help='specify number of iterations (default: 5000)')
-    parser.add_argument('--password', type=cmdline_args_password, help='specify the password (default: user input from prompt)')
+    parser = argparse.ArgumentParser(
+        description='UNIX style password encryption using SHA-512')
+    parser.add_argument('--salt', type=w(cmdline_args_salt),
+        help='specify the 96-bit salt (default: randomly generated)')
+    parser.add_argument('--rounds', type=w(cmdline_args_rounds),
+        help='specify number of iterations (default: 5000)')
+    parser.add_argument('--password', type=w(cmdline_args_password),
+        help='specify the password (default: user input from prompt)')
     return parser.parse_args()
 
 def cmdline_args_salt(string):
-    try:
-        assert re.fullmatch('^[./0-9A-Za-z]{0,16}$', string)
-        return string.encode()
-    except:
-        pass
-    raise argparse.ArgumentTypeError('invalid salt')
+    assert re.fullmatch('^[./0-9A-Za-z]{0,16}$', string)
+    return string.encode()
 
 def cmdline_args_rounds(string):
-    try:
-        assert 1000 <= int(string) <= 999999999
-        return int(string)
-    except:
-        pass
-    raise argparse.ArgumentTypeError('invalid rounds')
+    assert 1000 <= int(string) <= 999999999
+    return int(string)
 
 def cmdline_args_password(string):
-    try:
-        assert all(map(lambda c: 32 <= ord(c) <= 126, string))
-        return string.encode()
-    except:
-        pass
-    raise argparse.ArgumentTypeError('invalid password')
+    assert all(map(lambda c: 32 <= ord(c) <= 126, string))
+    return string.encode()
+
+def w(func):
+    def new_func(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except:
+            pass
+        raise argparse.ArgumentTypeError(*args, **kwargs)
+    return new_func
 
 if __name__ == '__main__':
     main()
