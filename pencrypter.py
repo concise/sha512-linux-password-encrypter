@@ -9,9 +9,11 @@
 # https://docs.python.org/3/library/crypt.html
 #
 
+import argparse
 import getpass
 import hashlib
 import os
+import re
 import sys
 
 b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
@@ -68,6 +70,16 @@ def sha512_crypt_core(password, salt, rounds):
     )
     return myb64encode(bytes(C[i] for i in permutation_indices))
 
+def myb64encode(stream):
+    assert type(stream) is bytes
+    stream_len = len(stream)
+    if stream_len % 3 != 0:
+        stream += b'\x00' * (3 - stream_len % 3)
+    result = myb64encode_core(stream)
+    if stream_len % 3 != 0:
+        result = result[:stream_len % 3 - 3]
+    return bytes(map(lambda u: b64table[u], result))
+
 def myb64encode_core(stream):
     result = ()
     for triple in zip(stream[0::3], stream[1::3], stream[2::3]):
@@ -81,30 +93,48 @@ def myb64encode_core(stream):
         result += quadruple
     return result
 
-def myb64encode(stream):
-    stream_len = len(stream)
-    if stream_len % 3 != 0:
-        stream += b'\x00' * (3 - stream_len % 3)
-    result = myb64encode_core(stream)
-    if stream_len % 3 != 0:
-        result = result[:stream_len % 3 - 3]
-    return bytes(map(lambda u: b64table[u], result))
 
-def get_salt_from_cmdline_or_urandom():
-    args = sys.argv[1:]
-    if (len(args) == 2 and args[0] == '--salt' and len(args[1]) <= 16 and
-    all(map(lambda c: c in b64table, args[1].encode()))):
-        return args[1].encode()
-    if len(args) == 0:
-        return myb64encode(os.urandom(12))
-    print('bad cmdline arguments', file=sys.stderr)
-    sys.exit(1)
 
 def main():
-    salt = get_salt_from_cmdline_or_urandom()
-    password = getpass.getpass().encode()
-    encrypted = sha512_crypt(password, salt)
-    print(encrypted.decode())
+    obj = cmdline_args_handler()
+    if obj.salt is None:
+        obj.salt = myb64encode(os.urandom(12))
+    if obj.rounds is None:
+        obj.rounds = 5000
+    if obj.password is None:
+        obj.password = getpass.getpass().encode()
+    print(sha512_crypt(obj.password, obj.salt, obj.rounds).decode())
+
+def cmdline_args_handler():
+    parser = argparse.ArgumentParser(description='UNIX style password encryption using SHA-512')
+    parser.add_argument('--salt', type=cmdline_args_salt, help='specify the 96-bit salt (default: randomly generated)')
+    parser.add_argument('--rounds', type=cmdline_args_rounds, help='specify number of iterations (default: 5000)')
+    parser.add_argument('--password', type=cmdline_args_password, help='specify the password (default: user input from prompt)')
+    return parser.parse_args()
+
+def cmdline_args_salt(string):
+    try:
+        assert re.fullmatch('^[./0-9A-Za-z]{0,16}$', string)
+        return string.encode()
+    except:
+        pass
+    raise argparse.ArgumentTypeError('invalid salt')
+
+def cmdline_args_rounds(string):
+    try:
+        assert 1000 <= int(string) <= 999999999
+        return int(string)
+    except:
+        pass
+    raise argparse.ArgumentTypeError('invalid rounds')
+
+def cmdline_args_password(string):
+    try:
+        assert all(map(lambda c: 32 <= ord(c) <= 126, string))
+        return string.encode()
+    except:
+        pass
+    raise argparse.ArgumentTypeError('invalid password')
 
 if __name__ == '__main__':
     main()
