@@ -68,7 +68,11 @@ def sha512_crypt_core(password, salt, rounds):
         60, 39, 18, 19, 61, 40, 41, 20, 62,
         63
     )
-    return myb64encode(bytes(C[i] for i in permutation_indices))
+    D = bytes(C[i] for i in permutation_indices)
+
+    return myb64encode(D)
+
+
 
 def myb64encode(stream):
     assert type(stream) is bytes
