@@ -16,8 +16,7 @@ import sys
 
 b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
-def sha512_crypt_core(password, salt):
-    rounds = 5000
+def sha512_crypt_core(password, salt, rounds=5000):
 
     digest_B = hashlib.sha512(password + salt + password).digest()
 
@@ -35,41 +34,15 @@ def sha512_crypt_core(password, salt):
     digest_DS = hashlib.sha512(salt * (16 + digest_A[0])).digest()
     S = digest_DS * (len(salt) // 64) + digest_DS[:len(salt) % 64]
 
-    # 21
     digest_C = digest_A
-    for i in range(rounds):
-
-        # 21.a
+    for round_no in range(rounds):
         digest_context_C = hashlib.sha512()
-
-        # 21.b
-        if i % 2 == 1:
-            digest_context_C.update(P)
-
-        # 21.c
-        if i % 2 == 0:
-            digest_context_C.update(digest_C)
-
-        # 21.d
-        if i % 3 != 0:
-            digest_context_C.update(S)
-
-        # 21.e
-        if i % 7 != 0:
-            digest_context_C.update(P)
-
-        # 21.f
-        if i % 2 == 1:
-            digest_context_C.update(digest_C)
-
-        # 21.g
-        if i % 2 == 0:
-            digest_context_C.update(P)
-
-        # 21.h
+        digest_context_C.update(P if round_no % 2 == 1 else digest_C)
+        digest_context_C.update(S if round_no % 3 != 0 else b'')
+        digest_context_C.update(P if round_no % 7 != 0 else b'')
+        digest_context_C.update(P if round_no % 2 == 0 else digest_C)
         digest_C = digest_context_C.digest()
 
-    # 22
     permutation_indices = (
         42, 21,  0,  1, 43, 22, 23,  2, 44,
         45, 24,  3,  4, 46, 25, 26,  5, 47,
@@ -82,28 +55,20 @@ def sha512_crypt_core(password, salt):
     )
     return myb64encode(bytes(digest_C[i] for i in permutation_indices))
 
-def sha512_crypt(password, salt):
+def sha512_crypt(password, salt, rounds=5000):
     assert type(password) is bytes
-    assert type(salt) is bytes
-    assert len(salt) <= 16
+    assert type(salt) is bytes and len(salt) <= 16
     assert all(map(lambda c: c in b64table, salt))
-    checksum = sha512_crypt_core(password, salt)
-    return b'$6$' + salt + b'$' + checksum
-
-def is_valid_salt_arg(salt):
-    return len(salt) <= 16 and all(map(lambda c: c in b64table, salt.encode()))
-
-def get_salt_from_cmdline_or_urandom():
-    args = sys.argv[1:]
-    if len(args) == 2 and args[0] == '--salt' and is_valid_salt_arg(args[1]):
-        return args[1].encode()
-    if len(args) == 0:
-        return myb64encode(os.urandom(12))
-    print('bad cmdline arguments', file=sys.stderr)
-    sys.exit(1)
+    assert type(rounds) is int and 1000 <= rounds <= 999999999
+    checksum = sha512_crypt_core(password, salt, rounds)
+    return (
+        b'$6' +
+        ('$rounds={:d}'.format(rounds).encode() if rounds != 5000 else b'') +
+        b'$' + salt +
+        b'$' + checksum
+    )
 
 def myb64encode_core(stream):
-    # NOTE: crypt(3) uses little-endian ordering
     result = ()
     for triple in zip(stream[0::3], stream[1::3], stream[2::3]):
         value = triple[0] | (triple[1] << 8) | (triple[2] << 16)
@@ -125,11 +90,21 @@ def myb64encode(stream):
         result = result[:stream_len % 3 - 3]
     return bytes(map(lambda u: b64table[u], result))
 
+def get_salt_from_cmdline_or_urandom():
+    args = sys.argv[1:]
+    if (len(args) == 2 and args[0] == '--salt' and len(args[1]) <= 16 and
+    all(map(lambda c: c in b64table, args[1].encode()))):
+        return args[1].encode()
+    if len(args) == 0:
+        return myb64encode(os.urandom(12))
+    print('bad cmdline arguments', file=sys.stderr)
+    sys.exit(1)
+
 def main():
     salt = get_salt_from_cmdline_or_urandom()
     password = getpass.getpass().encode()
-    sha512_crypt_result = sha512_crypt(password, salt)
-    print(sha512_crypt_result.decode())
+    encrypted = sha512_crypt(password, salt)
+    print(encrypted.decode())
 
 if __name__ == '__main__':
     main()
