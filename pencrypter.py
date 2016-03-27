@@ -19,80 +19,21 @@ b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 def sha512_crypt_core(password, salt):
     rounds = 5000
 
-    # 1
-    digest_context_A = hashlib.sha512()
+    digest_B = hashlib.sha512(password + salt + password).digest()
 
-    # 2
-    digest_context_A.update(password)
+    digest_A = hashlib.sha512(password + salt +
+        digest_B * (len(password) // 64) + digest_B[:len(password) % 64] +
+        b''.join(map(
+            lambda bit: digest_B if bit == '1' else password,
+            reversed('{:b}'.format(len(password)))
+        ))
+    ).digest()
 
-    # 3
-    digest_context_A.update(salt)
+    digest_DP = hashlib.sha512(password * len(password)).digest()
+    P = digest_DP * (len(password) // 64) + digest_DP[:len(password) % 64]
 
-    # 4
-    digest_context_B = hashlib.sha512()
-
-    # 5
-    digest_context_B.update(password)
-
-    # 6
-    digest_context_B.update(salt)
-
-    # 7
-    digest_context_B.update(password)
-
-    # 8
-    digest_B = digest_context_B.digest()
-
-    # 9
-    password_length = len(password)
-    digest_context_A.update(digest_B * (password_length // 64))
-
-    # 10
-    password_length = len(password)
-    digest_context_A.update(digest_B[0:(password_length % 64)])
-
-    # 11
-    password_length = len(password)
-    while password_length > 0:
-        if password_length & 1 == 1:
-            digest_context_A.update(digest_B)
-        else:
-            digest_context_A.update(password)
-        password_length >>= 1
-
-    # 12
-    digest_A = digest_context_A.digest()
-
-    # 13
-    digest_context_DP = hashlib.sha512()
-
-    # 14
-    password_length = len(password)
-    for _ in range(password_length):
-        digest_context_DP.update(password)
-
-    # 15
-    digest_DP = digest_context_DP.digest()
-
-    # 16
-    password_length = len(password)
-    P = (digest_DP * (password_length // 64) +
-         digest_DP[0:(password_length % 64)])
-
-    # 17
-    digest_context_DS = hashlib.sha512()
-
-    # 18
-    for _ in range(16 + digest_A[0]):
-        digest_context_DS.update(salt)
-
-    # 19
-    digest_DS = digest_context_DS.digest()
-
-    # 20
-    salt_length = len(salt)
-    S = (digest_DS * (salt_length // 64) +
-         digest_DS[0:(salt_length % 64)])
+    digest_DS = hashlib.sha512(salt * (16 + digest_A[0])).digest()
+    S = digest_DS * (len(salt) // 64) + digest_DS[:len(salt) % 64]
 
     # 21
     digest_C = digest_A
