@@ -118,7 +118,7 @@ def cmdline_args_handler():
     parser.add_argument('--salt', type=w(cmdline_args_salt),
         help='specify the 96-bit salt (default: randomly generated)')
     parser.add_argument('--rounds', type=w(cmdline_args_rounds),
-        help='specify number of iterations (default: 5000)')
+        help='specify the number of iterations (default: 5000)')
     parser.add_argument('--password', type=w(cmdline_args_password),
         help='specify the password (default: user input from prompt)')
     return parser.parse_args()
