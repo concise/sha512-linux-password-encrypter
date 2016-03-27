@@ -18,30 +18,30 @@ b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
 def sha512_crypt_core(password, salt, rounds):
 
-    digest_B = hashlib.sha512(password + salt + password).digest()
+    B = hashlib.sha512(password + salt + password).digest()
 
-    digest_A = hashlib.sha512(password + salt +
-        digest_B * (len(password) // 64) + digest_B[:len(password) % 64] +
+    A = hashlib.sha512(password + salt +
+        B * (len(password) // 64) + B[:len(password) % 64] +
         b''.join(map(
-            lambda bit: digest_B if bit == '1' else password,
+            lambda bit: B if bit == '1' else password,
             reversed('{:b}'.format(len(password)))
         ))
     ).digest()
 
-    digest_DP = hashlib.sha512(password * len(password)).digest()
-    P = digest_DP * (len(password) // 64) + digest_DP[:len(password) % 64]
+    DP = hashlib.sha512(password * len(password)).digest()
+    P = DP * (len(password) // 64) + DP[:len(password) % 64]
 
-    digest_DS = hashlib.sha512(salt * (16 + digest_A[0])).digest()
-    S = digest_DS * (len(salt) // 64) + digest_DS[:len(salt) % 64]
+    DS = hashlib.sha512(salt * (16 + A[0])).digest()
+    S = DS * (len(salt) // 64) + DS[:len(salt) % 64]
 
-    digest_C = digest_A
+    C = A
     for round_no in range(rounds):
-        digest_context_C = hashlib.sha512()
-        digest_context_C.update(P if round_no % 2 == 1 else digest_C)
-        digest_context_C.update(S if round_no % 3 != 0 else b'')
-        digest_context_C.update(P if round_no % 7 != 0 else b'')
-        digest_context_C.update(P if round_no % 2 == 0 else digest_C)
-        digest_C = digest_context_C.digest()
+        C_context = hashlib.sha512()
+        C_context.update(P if round_no % 2 == 1 else C)
+        C_context.update(S if round_no % 3 != 0 else b'')
+        C_context.update(P if round_no % 7 != 0 else b'')
+        C_context.update(P if round_no % 2 == 0 else C)
+        C = C_context.digest()
 
     permutation_indices = (
         42, 21,  0,  1, 43, 22, 23,  2, 44,
@@ -53,7 +53,7 @@ def sha512_crypt_core(password, salt, rounds):
         60, 39, 18, 19, 61, 40, 41, 20, 62,
         63
     )
-    return myb64encode(bytes(digest_C[i] for i in permutation_indices))
+    return myb64encode(bytes(C[i] for i in permutation_indices))
 
 def sha512_crypt(password, salt, rounds=5000):
     assert type(password) is bytes
