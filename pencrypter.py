@@ -16,7 +16,7 @@ import sys
 
 b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
-def sha512_crypt_core(password, salt, rounds=5000):
+def sha512_crypt_core(password, salt, rounds):
 
     digest_B = hashlib.sha512(password + salt + password).digest()
 
