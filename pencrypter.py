@@ -7,7 +7,7 @@
 # https://www.akkadia.org/drepper/sha-crypt.html
 # https://www.akkadia.org/drepper/SHA-crypt.txt
 # https://docs.python.org/3/library/crypt.html
-#
+# https://sourceware.org/git/?p=glibc.git;a=tree;f=crypt;h=f9f4798146d372f4c1cdd01605eba039a0f1e99f;hb=refs/heads/release/2.23/master
 
 import argparse
 import getpass
@@ -102,7 +102,12 @@ def myb64encode_core(stream):
 def main():
     obj = cmdline_args_handler()
     if obj.salt is None:
-        obj.salt = myb64encode(os.urandom(12))
+        #
+        # 48 random bits
+        # 6 random bytes
+        # 8 random base64 alphabets
+        #
+        obj.salt = myb64encode(os.urandom(6))
     if obj.rounds is None:
         obj.rounds = 5000
     if obj.password is None:
@@ -116,7 +121,7 @@ def cmdline_args_handler():
     parser = argparse.ArgumentParser(
         description='UNIX style password encryption using SHA-512')
     parser.add_argument('--salt', type=w(cmdline_args_salt),
-        help='specify the 96-bit salt (default: randomly generated)')
+        help='specify the salt (default: 8 random base64 alphabets)')
     parser.add_argument('--rounds', type=w(cmdline_args_rounds),
         help='specify the number of iterations (default: 5000)')
     parser.add_argument('--password', type=w(cmdline_args_password),
@@ -124,12 +129,21 @@ def cmdline_args_handler():
     return parser.parse_args()
 
 def cmdline_args_salt(string):
-    assert re.fullmatch('^[./0-9A-Za-z]{0,16}$', string)
+    assert re.fullmatch('^[./0-9A-Za-z]*$', string)
+
+    # if there are more than 16 base64 alphabets (more than 12 bytes of info)
+    # only the first 16 base64 alphabets will be kept
+    string = string[:16]
+
     return string.encode()
 
 def cmdline_args_rounds(string):
-    assert 1000 <= int(string) <= 999999999
-    return int(string)
+    _rounds = int(string)
+    if _rounds < 1000:
+        return 1000
+    if _rounds > 999999999:
+        return 999999999
+    return _rounds
 
 def cmdline_args_password(string):
     assert all(map(lambda c: 32 <= ord(c) <= 126, string))
