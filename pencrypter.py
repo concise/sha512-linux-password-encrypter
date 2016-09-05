@@ -116,7 +116,7 @@ def main():
     if obj.password is None:
         obj.password = getpass.getpass().encode()
     if not all(map(lambda c: 32 <= c <= 126, obj.password)):
-        print('Error: must use ASCII printable characters', file=sys.stderr)
+        print('Error: only ASCII printable characters are allowed in password', file=sys.stderr)
         sys.exit(1)
     print(sha512_crypt(obj.password, obj.salt, obj.rounds).decode())
 
