@@ -9,6 +9,7 @@
 # https://docs.python.org/3/library/crypt.html
 # https://sourceware.org/git/?p=glibc.git;a=tree;f=crypt;h=f9f4798146d372f4c1cdd01605eba039a0f1e99f;hb=refs/heads/release/2.23/master
 
+
 import argparse
 import getpass
 import hashlib
@@ -16,7 +17,9 @@ import os
 import re
 import sys
 
+
 b64table = b'./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
 
 def sha512_crypt(password, salt, rounds=5000):
     assert type(password) is bytes
@@ -30,6 +33,7 @@ def sha512_crypt(password, salt, rounds=5000):
         b'$' + salt +
         b'$' + checksum
     )
+
 
 def sha512_crypt_core(password, salt, rounds):
 
@@ -73,7 +77,6 @@ def sha512_crypt_core(password, salt, rounds):
     return myb64encode(D)
 
 
-
 def myb64encode(stream):
     assert type(stream) is bytes
     stream_len = len(stream)
@@ -83,6 +86,7 @@ def myb64encode(stream):
     if stream_len % 3 != 0:
         result = result[:stream_len % 3 - 3]
     return bytes(map(lambda u: b64table[u], result))
+
 
 def myb64encode_core(stream):
     result = ()
@@ -96,7 +100,6 @@ def myb64encode_core(stream):
         )
         result += quadruple
     return result
-
 
 
 def main():
@@ -117,6 +120,7 @@ def main():
         sys.exit(1)
     print(sha512_crypt(obj.password, obj.salt, obj.rounds).decode())
 
+
 def cmdline_args_handler():
     parser = argparse.ArgumentParser(
         description='UNIX style password encryption using SHA-512')
@@ -128,6 +132,7 @@ def cmdline_args_handler():
         help='specify the password (default: user input from prompt)')
     return parser.parse_args()
 
+
 def cmdline_args_salt(string):
     assert re.fullmatch('^[./0-9A-Za-z]*$', string)
 
@@ -137,6 +142,7 @@ def cmdline_args_salt(string):
 
     return string.encode()
 
+
 def cmdline_args_rounds(string):
     _rounds = int(string)
     if _rounds < 1000:
@@ -145,9 +151,11 @@ def cmdline_args_rounds(string):
         return 999999999
     return _rounds
 
+
 def cmdline_args_password(string):
     assert all(map(lambda c: 32 <= ord(c) <= 126, string))
     return string.encode()
+
 
 def w(func):
     def new_func(*args, **kwargs):
@@ -157,6 +165,7 @@ def w(func):
             pass
         raise argparse.ArgumentTypeError(*args, **kwargs)
     return new_func
+
 
 if __name__ == '__main__':
     main()
