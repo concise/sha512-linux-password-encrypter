@@ -8,7 +8,19 @@ put into the "/etc/shadow" file directly.
 Example
 -------
 
-# ./pencrypter.py --salt '8n./Hzqd' --password 'This is my password!'
+# python3 pencrypter.py --help
+usage: pencrypter.py [-h] [--salt SALT] [--rounds ROUNDS]
+                     [--password PASSWORD]
+
+UNIX style password encryption using SHA-512
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --salt SALT          specify the salt (default: 8 random base64 alphabets)
+  --rounds ROUNDS      specify the number of iterations (default: 5000)
+  --password PASSWORD  specify the password (default: user input from prompt)
+
+# python3 pencrypter.py --salt '8n./Hzqd' --password 'This is my password!'
 $6$8n./Hzqd$1ufKVaxlFjW3X8OcAgMbVX8UF6fx7HEEmhmS1zrj/M.AfmXt2Jla0tAOvfYAz0oxb10TeqPKxHuZtWT2c5SaK/
 
 # useradd --create-home --shell /bin/bash username
